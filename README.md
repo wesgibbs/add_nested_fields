@@ -3,60 +3,72 @@ AddNestedFields
 
 Adds two RJS helper methods to help work with accepts_nested_attributes_for and partials. Based on the method suggested by Marsvin on [RailsForum.com](http://railsforum.com/viewtopic.php?pid=91229)
 
+This branch is for use with jQuery. Requires jQuery 1.3.2.
+
 Installation
 ============
 
 To install as a plugin (Rails)
 
-	cd into your Rails root folder
-	script/plugin install git://github.com/miletbaker/add_nested_fields.git
-	
+  cd into your Rails root folder
+  script/plugin install git://github.com/miletbaker/add_nested_fields.git
+
 Usage
 =====
 
 Example form
 
-	<% form_for @product do |f| %>
-		...
-		<% f.fields_for :product_variations do |prod_var| %>
-				<%= render :partial => 'product_variation', :locals => { :f => prod_var } %>
-		<% end %>
-		<%= add_nested_fields_for(f, :product_variations, 'variations') %>
-	<% end %>
+  <% form_for @product do |f| %>
+    ...
+    <div id="variations">
+      <% f.fields_for :product_variations do |prod_var| %>
+          <%= render :partial => 'product_variation', :locals => { :f => prod_var } %>
+      <% end %>
+    </div>
+    <%= add_nested_fields_for(f, :product_variations, '#variations') %>
+  <% end %>
 
 example _product_variation.rb
 
-	<li class="product_variation">
-		...
-			<%= remove_nested_fields_for(f, 'product_variation') %>
-		...
-	</li>
+  <li class="product_variation">
+    ...
+      <%= remove_nested_fields_for(f, '.product_variation') %>
+    ...
+  </li>
 
-add_nested_fields_for(form_builder, attribute, dom_id, options = {})
+add_nested_fields_for(form_builder, field, selector, options = {})
 --------------------------------------------------------------------
 add_nested_fields_for adds a link to a javascript function that adds an additional nested model form, based on a partial.
 
 *form_builder* is the current form_for builder
 
-*attribute* is the property of the model that holds the relationship, i.e. in the link above Product has a has_many relationship to product_variations and hence :product_variations is its attribute.
+*field* is the property of the model that holds the relationship, i.e. in the link above Product has a has_many relationship to product_variations and hence :product_variations is its attribute.
 
-*dom_id* is the id of the HTML element to insert the partial into the bottom of.
+*selector* is the DOM selector of the HTML element to append the partial into the bottom of.
 
 You can optionally also supply:
 
-*:partial =>* defaults to the singular name of the attribute, in the above example 'product_variation'
+*:partial =>* defaults to the singular name of the field, in the above example 'product_variation'
 
-*:label =>* defaults to "Add" plus the title case, singular name of the attribute
+*:label =>* defaults to "Add" plus the title case, singular name of the field
 
-*:object =>* defaults to creating a new instance of an object using the camel-cased name of the attribute i.e. above that would be ProductVariation.new
+*:label_class =>* CSS class(es) to add to the label.  Defaults to ''
 
-remove_nested_fields_for(form_builder, dom_class)
+*:object =>* defaults to creating a new instance of an object using the camel-cased name of the field i.e. above that would be ProductVariation.new
+
+remove_nested_fields_for(form_builder, selector, options = {})
 ------------------------------------------------
 remove_nested_fields_for adds a link to a javascript function that if new, removes the partial, and if existing sets a hidden field _marking it's removal _delete=1, informing rails to delete the record and hides the partial.
 
 *form_builder* is the fields_for builder, passed to the partial via the locals option.
 
-*dom_class* is the class of the HTML element that forms the whole of the partial, the function searches up from the link for a HTML element with the matching class and removes or hides it as above.
+*selector* is the selector for the HTML parent element that forms the whole of the partial, the function searches parents from the link for an HTML element with the matching class and removes or hides it as above.
+
+You can optionally also supply:
+
+*:label =>* text for the remove link. Defaults to 'remove'
+
+*:label_class =>* CSS class attribute for the remove link. Defaults to ''
 
 Validation
 ==========
@@ -64,12 +76,12 @@ Your models should validate the nested models as expected however there are a co
 
 If you would like to validate the presence of nested attributes, for example, with the above code, if you wanted to ensure that there was at least one ProductVariation present when saving the Product model, you could add something along the lines of the following to your validate method override in your Product model
 
-	def validate
-		...
-		# TODO: create validates_presence_of_nested_attributes
-		errors.add(:product_variations, " must have at least one variation.") unless product_variations.select {|var| var._delete != true}.length > 0
-		...
-	end
+  def validate
+    ...
+    # TODO: create validates_presence_of_nested_attributes
+    errors.add(:product_variations, " must have at least one variation.") unless product_variations.select {|var| var._delete != true}.length > 0
+    ...
+  end
 
 This is needed because models are not removed until the save so in some cases the user may have requested to delete a nested model by setting _delete to true but at the time of validation the model is still present.
 
